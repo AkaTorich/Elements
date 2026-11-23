@@ -1,0 +1,11 @@
+# сборки и мусор компилятора (пересобирается через build.cmd / build_all.ps1)
+build/
+bin/
+lib/
+dist/
+*.obj
+*.exp
+*.pdb
+*.ilk
+*.idb
+*.exe
