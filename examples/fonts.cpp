@@ -6,18 +6,19 @@
 #include <stdio.h>
 #include <string>
 
+// 30 собственных шрифтов, нарисованных штрихами (tools/genfonts.py -> fonts/elmNN.ttf)
 struct FontDef { const char *file; const char *name; };
 FontDef FONTS[] = {
-    { "arial.ttf", "Arial" }, { "times.ttf", "Times New Roman" }, { "cour.ttf", "Courier New" },
-    { "verdana.ttf", "Verdana" }, { "georgia.ttf", "Georgia" }, { "tahoma.ttf", "Tahoma" },
-    { "trebuc.ttf", "Trebuchet MS" }, { "comic.ttf", "Comic Sans MS" }, { "impact.ttf", "Impact" },
-    { "calibri.ttf", "Calibri" }, { "candara.ttf", "Candara" }, { "consola.ttf", "Consolas" },
-    { "constan.ttf", "Constantia" }, { "corbel.ttf", "Corbel" }, { "framd.ttf", "Franklin Gothic" },
-    { "gabriola.ttf", "Gabriola" }, { "segoeui.ttf", "Segoe UI" }, { "segoepr.ttf", "Segoe Print" },
-    { "segoesc.ttf", "Segoe Script" }, { "lucon.ttf", "Lucida Console" }, { "pala.ttf", "Palatino Linotype" },
-    { "sylfaen.ttf", "Sylfaen" }, { "ebrima.ttf", "Ebrima" }, { "gadugi.ttf", "Gadugi" },
-    { "Inkfree.ttf", "Ink Free" }, { "bahnschrift.ttf", "Bahnschrift" }, { "micross.ttf", "Microsoft Sans Serif" },
-    { "mvboli.ttf", "Mv Boli" }, { "ariblk.ttf", "Arial Black" }, { "seguisb.ttf", "Segoe UI Semibold" },
+    { "elm01.ttf", "Elm Hairline" }, { "elm02.ttf", "Elm Thin" }, { "elm03.ttf", "Elm Regular" },
+    { "elm04.ttf", "Elm Medium" }, { "elm05.ttf", "Elm Bold" }, { "elm06.ttf", "Elm Heavy" },
+    { "elm07.ttf", "Elm Square" }, { "elm08.ttf", "Elm Square Bold" }, { "elm09.ttf", "Elm Butt" },
+    { "elm10.ttf", "Elm Italic" }, { "elm11.ttf", "Elm Italic Bold" }, { "elm12.ttf", "Elm Thin Italic" },
+    { "elm13.ttf", "Elm Condensed" }, { "elm14.ttf", "Elm Cond Bold" }, { "elm15.ttf", "Elm Wide" },
+    { "elm16.ttf", "Elm Wide Bold" }, { "elm17.ttf", "Elm Tall" }, { "elm18.ttf", "Elm Short" },
+    { "elm19.ttf", "Elm Serif" }, { "elm20.ttf", "Elm Slab" }, { "elm21.ttf", "Elm Dotted" },
+    { "elm22.ttf", "Elm Dotted Bold" }, { "elm23.ttf", "Elm Dashed" }, { "elm24.ttf", "Elm Marker" },
+    { "elm25.ttf", "Elm Pen" }, { "elm26.ttf", "Elm Mono" }, { "elm27.ttf", "Elm Mono Thin" },
+    { "elm28.ttf", "Elm Block" }, { "elm29.ttf", "Elm Round Bold" }, { "elm30.ttf", "Elm Script" },
 };
 const int NF = (int)(sizeof(FONTS) / sizeof(FONTS[0]));
 
@@ -49,7 +50,7 @@ int main(void)
     el_padding(page, 20, 18, 20, 18); el_gap(page, 4);
     el head = el_text(page, "30 встраиваемых шрифтов");
     el_style(head, "font-size:24; font-weight:bold");
-    el sub = el_text(page, "Каждый загружен из .ttf через el_font_add и может встраиваться в программу.");
+    el sub = el_text(page, "Свои шрифты, нарисованные штрихами (tools/genfonts.py). Строчные берут начертания прописных.");
     el_style(sub, "color:#8fa3b8; font-size:13; margin:0 0 8 0");
 
     el sc = el_scroll(page);
