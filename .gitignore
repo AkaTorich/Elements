@@ -9,3 +9,8 @@ dist/
 *.ilk
 *.idb
 *.exe
+
+# системные шрифты Windows не выкладываем (лицензия); см. fonts/README.md
+fonts/*.ttf
+fonts/*.otf
+fonts/*.ttc
