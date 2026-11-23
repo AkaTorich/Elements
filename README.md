@@ -1,114 +1,157 @@
-# Elements — библиотека окон для Windows (C++)
+# Elements — a window library for Windows (C++)
 
-Нативная библиотека интерфейса в духе WPF, перенос прототипа «библиотеки дизайнов»
-из DynastyOS (`<elements.h>`) на настоящую Windows. Рисование — на **GDI+** (без
-сторонних зависимостей). Программа строит дерево элементов один раз и запускает
-`el_run()`; панели сами раскладывают детей (measure/arrange, как в WPF).
+A native UI library in the spirit of WPF, a port of the "design library" prototype
+from DynastyOS (`<elements.h>`) to real Windows. Rendering is done with **GDI+**
+(no third-party dependencies). A program builds a tree of elements once and runs
+`el_run()`; panels lay out their own children (measure/arrange, as in WPF).
 
-Тот же API, что в DyOS: любой код против `elements.h` собирается и там, и здесь.
+The API is the same as in DyOS: any code written against `elements.h` compiles there and here.
 
-## Что где
+## Layout of the project
 
 ```
 Elements/
-  include/elements.h     — единственный заголовок, который подключает программа (API, C-совместимый)
-  src/                   — реализация (каждый файл — свой слой):
-    el_internal.h          общий внутренний заголовок: структура элемента, контекст, помощники
-    el_core.cpp            контекст, создание элементов, свойства, шрифты/текст, цикл el_run/el_frame
-    el_theme.cpp           темы: тёмная/светлая, 16 именованных, 14 цветовых слотов
-    el_layout.cpp          раскладка: stack/dock/wrap/grid/scroll/canvas/border/group/tabs, align, сетка "Auto,*,2*,120"
-    el_controls.cpp        ввод: попадание мышью, наведение, щелчки, текстовый редактор, combo, подсказки
-    el_paint.cpp           отрисовка всех элементов на GDI+; примитивы своего рисования el_g_*
-    el_menu.cpp            полоса меню, выпадающие и подменю, контекстное меню
-    el_style.cpp           оформление строкой (CSS-подобно) el_style и таблица стилей el_stylesheet
-    el_anim.cpp            анимации (сдвиг/масштаб/поворот/прозрачность), плавности, таймеры
-    el_dialog.cpp          сообщение, вопрос, тост, выбор файла/папки, модальное окно
-    el_win32.cpp           окно, цикл сообщений, ввод, буфер кадра, НЕСТАНДАРТНЫЕ окна
-  examples/              — примеры (ниже)
-  build.cmd             — сборка (Release, статический CRT)
-  lib/Elements.lib      — библиотека после сборки
-  bin/                  — собранные примеры
+  include/elements.h     — the single header a program includes (C-compatible API)
+  src/                   — implementation, split by layer:
+    el_internal.h          shared internal header: element struct, context, helpers
+    el_core.cpp            context, element creation, properties, fonts/text, el_run/el_frame loop
+    el_theme.cpp           themes: dark/light, 16 named, 14 color slots
+    el_layout.cpp          layout: stack/dock/wrap/grid/scroll/canvas/border/group/tabs, align, "Auto,*,2*,120" grid
+    el_controls.cpp        input: hit-testing, hover, clicks, text editor, combo, tooltips
+    el_paint.cpp           drawing of every element on GDI+; the el_g_* custom-drawing primitives
+    el_menu.cpp            menu bar, drop-downs and submenus, context menu
+    el_style.cpp           inline styling (CSS-like) el_style and the el_stylesheet table
+    el_anim.cpp            animations (translate/scale/rotate/opacity), easings, timers
+    el_dialog.cpp          message, ask, toast, file/folder pickers, modal dialog
+    el_win32.cpp           window, message loop, input, frame buffer, NON-STANDARD windows
+    el_effects.cpp         window effects (post-processing the finished frame)
+  examples/              — examples (see below)
+  fonts/                 — 30 .ttf fonts for the font showcase
+  build.cmd              — build (Release, static CRT)
+  build_all.ps1          — build every variant (static + DLL for x64 and x86)
+  README.md, DOCUMENTATION.md
 ```
 
-## Сборка
+## Building
 
-Нужен Visual Studio с инструментами C++. Из PowerShell в папке проекта:
+You need Visual Studio with the C++ tools. From PowerShell in the project folder:
 
 ```powershell
-& ".\build.cmd"        # x64: статическая lib + все примеры в bin\
-& ".\build_all.ps1"    # все варианты: x64 и x86, статические и динамические (DLL) в dist\
+& ".\build.cmd"        # x64: static lib + all examples in bin\
+& ".\build_all.ps1"    # every variant: x64 and x86, static and dynamic (DLL) in dist\
 ```
 
-`build.cmd` собирает `lib\Elements.lib` и примеры в `bin\`. `build_all.ps1` собирает:
+`build.cmd` builds `lib\Elements.lib` and the examples in `bin\`. `build_all.ps1` builds:
 
 ```
-dist\x64\static\Elements.lib        dist\x86\static\Elements.lib        (статические)
-dist\x64\dll\Elements.dll + .lib    dist\x86\dll\Elements.dll + .lib    (динамические: DLL + import-lib)
+dist\x64\static\Elements.lib        dist\x86\static\Elements.lib        (static)
+dist\x64\dll\Elements.dll + .lib    dist\x86\dll\Elements.dll + .lib    (dynamic: DLL + import lib)
 ```
 
-Подключение в своей программе: добавить `include\` в пути заголовков, слинковать нужную
+To use it in your program: add `include\` to the header search path, link the right
 `Elements.lib` + `gdiplus.lib user32.lib gdi32.lib comdlg32.lib shell32.lib ole32.lib`,
-собрать как оконное приложение (`/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup`).
-Исходники собирать с `/utf-8` — строки в программе в UTF-8. Для DLL положить `Elements.dll`
-рядом с программой.
+build as a windowed application (`/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup`). Compile
+sources with `/utf-8` — strings in the program are UTF-8. For the DLL, put `Elements.dll`
+next to your program.
 
-## Коротко об API
+## A quick tour of the API
 
-- **Окно и цикл:** `el_window`, `el_run` (или свой `while (el_frame())`), `el_quit`.
-- **Панели:** `el_stack`, `el_dock`, `el_wrap`, `el_grid("Auto,*,2*,120", "...")`, `el_scroll`, `el_canvas`, `el_border`, `el_group`, `el_tabs`/`el_tab`.
-- **Элементы:** `el_text`, `el_button`, `el_check`, `el_radio`, `el_edit`, `el_memo`, `el_password`, `el_combo`, `el_listbox`, `el_slider`, `el_progress`, `el_number`, `el_image`, `el_separator`, `el_toolbar`/`el_tool`.
-- **Меню:** `el_menubar`, `el_menu` ("Пункт\tCtrl+N"), `el_menu_check`, `el_context_menu`.
-- **Свойства:** `el_size/min/max`, `el_margin`, `el_padding`, `el_align`, `el_cell`, `el_dock_side`, `el_gap`, `el_set_text`, `el_text_bind`, `el_tooltip`, `el_font`, `el_colors`, `el_frame_style`.
-- **Тема:** `el_theme(dark)`, `el_accent`, `el_theme_color(slot, rgb)`, `el_corner_radius`, `el_theme_named("Ночь"…)`.
-- **Оформление строкой (как CSS):** `el_style(e, "gradient:#1a2a6c #b21f1f diagonal; radius:12; background-alpha:160; shadow:#000 18 0 6 120; hover-background:#fff; font-weight:bold; text-align:center")`; таблица — `el_stylesheet`.
-- **События:** `el_on_click`, `el_on_change`, `el_clicked`, `el_changed`.
-- **Анимации:** `el_animate(e,"opacity",0,255,300,EL_EASE_OUT,0)`, `el_appear(e,"pop",400)`, `el_transform`, таймеры `el_every`.
-- **Готовые окна:** `el_message`, `el_ask`, `el_toast`, `el_open_file`, `el_save_file`, `el_pick_folder`, `el_dialog`.
-- **Своё рисование:** `el_paint` (поверхность) + примитивы `el_g_fill/round/frame/line/disc/ring/shade/text/poly/poly_frame/spline/blob/arc`.
-- **Эффекты окна:** `el_effect("chromatic"|"scanlines"|"noise"|"vignette"|"glitch"|"bloom"|"pixelate"|"grayscale"|"sepia"|"invert", сила)`, `el_effects_clear()` — постобработка всего кадра, можно несколько сразу.
-- **Встраиваемые шрифты:** `el_font_add(name, "файл.ttf")` / `el_font_add_memory(name, bytes, size)`, затем `el_font_face(e, name)` или стиль `font-family:name`.
-- **Размер окна:** обычные окна тянутся за края с живой перекладкой; `el_window_resizable(on)` — для безрамочных и фигурных тоже.
+- **Window and loop:** `el_window`, `el_run` (or your own `while (el_frame())`), `el_quit`.
+- **Panels:** `el_stack`, `el_dock`, `el_wrap`, `el_grid("Auto,*,2*,120", "...")`, `el_scroll`, `el_canvas`, `el_border`, `el_group`, `el_tabs`/`el_tab`.
+- **Controls:** `el_text`, `el_button`, `el_check`, `el_radio`, `el_edit`, `el_memo`, `el_password`, `el_combo`, `el_listbox`, `el_slider`, `el_progress`, `el_number`, `el_image`, `el_separator`, `el_toolbar`/`el_tool`.
+- **Menu:** `el_menubar`, `el_menu` ("Item\tCtrl+N"), `el_menu_check`, `el_context_menu`.
+- **Properties:** `el_size/min/max`, `el_margin`, `el_padding`, `el_align`, `el_cell`, `el_dock_side`, `el_gap`, `el_set_text`, `el_text_bind`, `el_tooltip`, `el_font`, `el_colors`, `el_frame_style`.
+- **Theme:** `el_theme(dark)`, `el_accent`, `el_theme_color(slot, rgb)`, `el_corner_radius`, `el_theme_named("Night"…)`.
+- **Inline styling (CSS-like):** `el_style(e, "gradient:#1a2a6c #b21f1f diagonal; radius:12; background-alpha:160; shadow:#000 18 0 6 120; hover-background:#fff; font-weight:bold; text-align:center")`; the table form is `el_stylesheet`.
+- **Events:** `el_on_click`, `el_on_change`, `el_clicked`, `el_changed`.
+- **Animations:** `el_animate(e,"opacity",0,255,300,EL_EASE_OUT,0)`, `el_appear(e,"pop",400)`, `el_transform`, timers `el_every`.
+- **Ready-made windows:** `el_message`, `el_ask`, `el_toast`, `el_open_file`, `el_save_file`, `el_pick_folder`, `el_dialog`.
+- **Custom drawing:** `el_paint` (a surface) + primitives `el_g_fill/round/frame/line/disc/ring/shade/text/poly/poly_frame/spline/blob/arc`.
+- **Window effects:** `el_effect("chromatic"|"scanlines"|"noise"|"vignette"|"glitch"|"bloom"|"pixelate"|"grayscale"|"sepia"|"invert", strength)`, `el_effects_clear()` — post-processing of the whole frame, several at once.
+- **Embeddable fonts:** `el_font_add(name, "file.ttf")` / `el_font_add_memory(name, bytes, size)`, then `el_font_face(e, name)` or the style `font-family:name`.
+- **Window resizing:** ordinary windows resize by their edges with live re-layout; `el_window_resizable(on)` applies to frameless and shaped windows too.
 
-## Нестандартные окна
+## Non-standard windows and shapes
 
-Окно может быть любой формы, размера и пропорций, и рисовать себя само:
+A window can be any shape, size and proportion, and draw itself.
 
-- `el_frameless(1)` — убрать системную рамку: своя «шапка», кнопки, фон.
-- `el_window_round(r)` / `el_window_shape("round:24" | "ellipse" | "pixels")` — форма окна.
-  Режим **`"pixels"`** берёт форму из **непрозрачности** того, что нарисовано, — так
-  получаются гладкие нестандартные контуры (треугольник, «капля», угловатая панель).
-- `el_window_region(xy, n)` — произвольный многоугольный контур.
-- `el_window_aspect(16, 10)` — держать пропорции при изменении размера.
-- `el_window_minmax`, `el_window_opacity`, `el_drag_region(e)` (тянуть окно за свой элемент),
-  `el_window_canvas(fn, arg)` — рисовать фон окна целиком через `el_g_*`.
-
-Произвольные формы (в том числе кривые) рисуются примитивами:
-`el_g_poly` (многоугольник), `el_g_blob` (гладкая замкнутая кривая — любая «кривая» форма),
-`el_g_spline` (гладкая кривая-штрих), `el_g_arc` (дуга).
-
-## Примеры (`bin\`)
-
-| Пример | Что показывает |
+| Function | What it does |
 |---|---|
-| `hello` | минимум: поле, кнопка, подпись |
-| `form` | меню, вкладки, сетка формы, список, многострочное поле, подсказки |
-| `design` | оформление строкой: градиенты, стекло, тени, плавное наведение |
-| `custom_window` | безрамочное окно: свои углы, шапка, фон, пропорции 16:10 |
-| `shaped` | окно-«пилюля»: форма по непрозрачности рисунка |
-| `triangle` | **треугольное окно с треугольными кнопками** |
-| `curves` | окно-«капля» со скруглёнными кривыми краями и круглыми кнопками, синусоида и дуга |
-| `cyberpunk` | угловатая панель в духе Cyberpunk 2077: эффекты дисперсии, развёртки, свечения; неон жёлтый/голубой/розовый |
-| `effects` | витрина эффектов окна: 10 эффектов переключателями |
-| `fonts` | 30 встраиваемых шрифтов (из `fonts\`, через `el_font_add`) |
+| `el_frameless(on)` | remove the system frame: your own title bar/buttons/background |
+| `el_window_round(r)` | round the window corners |
+| `el_window_shape("round:24"\|"ellipse"\|"pixels")` | window shape; **`"pixels"`** takes the shape from the opacity of what you draw (smooth custom outlines) |
+| `el_window_region(xy, n)` | an arbitrary polygonal outline (x,y pairs) |
+| `el_window_aspect(w, h)` | keep the aspect ratio while resizing (0,0 — free) |
+| `el_window_minmax(minw,minh,maxw,maxh)` | size limits (-1 — no limit) |
+| `el_window_resizable(on)` | whether the window can be resized (frameless: drag by the opaque edges) |
+| `el_window_opacity(a)` | opacity of the whole window 0..255 |
+| `el_drag_region(e)` | drag the window by this element |
+| `el_window_canvas(fn, arg)` | draw the whole window background with `el_g_*` |
 
-## Что реализовано и что нет
+Arbitrary shapes, curves included, are drawn with `el_g_poly/poly_frame` (polygon),
+`el_g_spline` (smooth stroked curve), `el_g_blob` (filled smooth closed curve — any
+"curved" shape) and `el_g_arc` (arc).
 
-Готово: всё перечисленное выше — раскладка, элементы, темы, оформление строкой и
-таблицей, меню, анимации, диалоги, своё рисование, нестандартные окна и формы,
-эффекты окна, встраиваемые шрифты, изменение размера с живой перекладкой, HiDPI,
-экономный простой (окно спит, пока нет событий). Полная документация — `ДОКУМЕНТАЦИЯ.md`.
+## Window effects
 
-Пока упрощено/не реализовано (объявления в `elements.h` есть, кроме отмеченных):
-загрузка окна из XML-разметки, `TreeView`/`DataGrid`, редактор кода с подсветкой,
-панель «Найти/Заменить», выбор цвета/даты, `background-image` в стиле (парсится, не
-рисуется). Их можно добавлять тем же способом — отдельным слоем в `src/`.
+Post-processing of the finished frame; several can be on at once, `amount` is the strength, 0 removes it.
+
+```cpp
+el_effect("chromatic", 3);   // dispersion (channel split)
+el_effect("scanlines", 30);  // CRT scanlines
+el_effect("bloom", 55);      // glow on bright areas
+el_effect("vignette", 24);   // darkened edges
+el_effect("glitch", 16);     // glitch (animated)
+el_effect("noise", 18);      // noise
+el_effect("pixelate", 8);    // pixelation
+el_effect("grayscale", 100); // grayscale
+el_effect("sepia", 100);     // sepia
+el_effect("invert", 100);    // invert
+el_effects_clear();          // remove all
+```
+
+An effect applies to the whole window, including text, so keep dispersion low (1–3) on
+windows with small text, or use effects only on decorative/shaped windows.
+
+## Embeddable fonts
+
+Any `.ttf`/`.otf` can be loaded and named, then applied to elements or in a style.
+
+```cpp
+el_font_add("MyFont", "fonts/arial.ttf");          // from a file
+el_font_add_memory("MyFont", bytes, size);         // from memory (embed into the exe as a byte array)
+el_font_face(elem, "MyFont");                        // element font by name
+el_style(elem, "font-family:MyFont");                // or via a style
+```
+
+The names `"default"` (Segoe UI) and `"mono"` (Consolas) are built in. The 30-font
+showcase is `examples/fonts.cpp` (the `fonts\` folder, path via `ELFONTS` or next to the
+exe). The fonts in `fonts\` are Windows system fonts used for the demo; to distribute your
+program, use fonts you have the rights to — the embedding mechanism works with any `.ttf`.
+
+## Examples (`bin\`)
+
+| Example | What it shows |
+|---|---|
+| `hello` | the minimum: a field, a button, a label |
+| `form` | menu, tabs, a form grid, a list and a multiline field, tooltips |
+| `design` | inline styling: gradients, glass, shadows, smooth hover |
+| `custom_window` | a frameless window: own corners, title bar, background, 16:10 proportions |
+| `shaped` | a "pill" window: shape from the opacity of the drawing |
+| `triangle` | **a triangular window with triangular buttons** |
+| `curves` | a "blob" window with smooth curved edges and round buttons, a sine curve and an arc |
+| `cyberpunk` | an angular panel in the spirit of Cyberpunk 2077: dispersion, scanline and glow effects; yellow/cyan/magenta neon |
+| `effects` | a window-effects showcase: 10 effects on toggles |
+| `fonts` | 30 embeddable fonts (from `fonts\`, via `el_font_add`) |
+
+## What is implemented and what isn't
+
+Done: everything above — layout, controls, themes, inline and table styling, menus,
+animations, dialogs, custom drawing, non-standard windows and shapes, window effects,
+embeddable fonts, resizing with live re-layout, HiDPI, idle sleep (the window sleeps when
+nothing happens). Full reference — `DOCUMENTATION.md`.
+
+Simplified / not yet implemented (declarations exist in `elements.h` unless noted):
+loading a window from XML markup, `TreeView`/`DataGrid`, a code editor with highlighting,
+a Find/Replace bar, color/date pickers, `background-image` in a style (parsed, not drawn).
+They can be added the same way — as another layer in `src/`.
