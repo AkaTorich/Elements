@@ -52,7 +52,9 @@ struct FontKey { int size, bold, face; bool operator<(const FontKey &o) const {
 static std::map<FontKey, Font *> s_fonts;
 static std::map<int, FontFamily *> s_fam;        // 0 Segoe UI, 1 Consolas, 2+ встроенные
 static std::map<std::string, int> s_faceName;    // имя -> индекс лица
-static PrivateFontCollection *s_pfc = nullptr;   // частная коллекция встроенных шрифтов
+// по коллекции на каждый встроенный шрифт: в ней ровно одно семейство. (В общей коллекции GDI+
+// отдаёт семейства по алфавиту, а не по порядку добавления — имя привязывалось к чужому шрифту.)
+static std::vector<PrivateFontCollection *> s_pfcs;
 static int s_nextFace = 2;
 
 Font *get_font(int size, int bold, int face) {
@@ -80,37 +82,33 @@ int font_face_by_name(const char *name) {
     return it != s_faceName.end() ? it->second : 0;
 }
 
-static int font_register(const wchar_t *internalName, const char *alias) {
-    FontFamily *ff = new FontFamily(internalName, s_pfc);
-    if (!ff->IsAvailable()) { delete ff; return 0; }
+static int font_take(PrivateFontCollection *pfc, const char *alias) {
+    int cnt = pfc->GetFamilyCount();
+    if (cnt <= 0) { delete pfc; return 0; }
+    std::vector<FontFamily> fams(cnt); int found = 0;
+    pfc->GetFamilies(cnt, fams.data(), &found);
+    if (found <= 0) { delete pfc; return 0; }
+    WCHAR fam[LF_FACESIZE] = { 0 }; fams[0].GetFamilyName(fam);
+    FontFamily *ff = new FontFamily(fam, pfc);
+    if (!ff->IsAvailable()) { delete ff; delete pfc; return 0; }
+    s_pfcs.push_back(pfc);
     int idx = s_nextFace++;
     s_fam[idx] = ff; s_faceName[alias] = idx;
-    return idx;
+    request_redraw();
+    return 1;
 }
 
 int el_font_add(const char *name, const char *path) {
     if (!name || !path) return 0;
-    if (!s_pfc) s_pfc = new PrivateFontCollection();
-    int before = s_pfc->GetFamilyCount();
-    if (s_pfc->AddFontFile(wide(path).c_str()) != Ok) return 0;
-    int cnt = s_pfc->GetFamilyCount(); if (cnt <= before) return 0;
-    std::vector<FontFamily> fams(cnt); int found = 0;
-    s_pfc->GetFamilies(cnt, fams.data(), &found); if (found <= 0) return 0;
-    WCHAR fam[LF_FACESIZE] = { 0 }; fams[found - 1].GetFamilyName(fam);
-    request_redraw();
-    return font_register(fam, name) ? 1 : 0;
+    PrivateFontCollection *pfc = new PrivateFontCollection();
+    if (pfc->AddFontFile(wide(path).c_str()) != Ok) { delete pfc; return 0; }
+    return font_take(pfc, name);
 }
 int el_font_add_memory(const char *name, const void *data, int size) {
     if (!name || !data || size <= 0) return 0;
-    if (!s_pfc) s_pfc = new PrivateFontCollection();
-    int before = s_pfc->GetFamilyCount();
-    if (s_pfc->AddMemoryFont(data, size) != Ok) return 0;
-    int cnt = s_pfc->GetFamilyCount(); if (cnt <= before) return 0;
-    std::vector<FontFamily> fams(cnt); int found = 0;
-    s_pfc->GetFamilies(cnt, fams.data(), &found); if (found <= 0) return 0;
-    WCHAR fam[LF_FACESIZE] = { 0 }; fams[found - 1].GetFamilyName(fam);
-    request_redraw();
-    return font_register(fam, name) ? 1 : 0;
+    PrivateFontCollection *pfc = new PrivateFontCollection();
+    if (pfc->AddMemoryFont(data, size) != Ok) { delete pfc; return 0; }
+    return font_take(pfc, name);
 }
 void el_font_face(el e, const char *family) { if (!valid(e)) return; g.el[e].mono = font_face_by_name(family); request_redraw(); }
 

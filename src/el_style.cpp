@@ -78,7 +78,12 @@ void apply_style_string(int h, const char *css) {
         else if (key == "hover-border" && !tk.empty()) { if (parse_color(tk[0], &c)) { e.hbd = c; e.has_hbd = true; } }
         else if (key == "font-size") e.fsize = tk.empty() ? 0 : atoi(tk[0].c_str());
         else if (key == "font-weight") e.bold = (!tk.empty() && (tk[0] == "bold" || atoi(tk[0].c_str()) >= 600)) ? 1 : 0;
-        else if (key == "font-family") e.mono = tk.empty() ? 0 : font_face_by_name(tk[0].c_str());
+        else if (key == "font-family") {
+            // имя целиком (может быть из нескольких слов, в кавычках или без)
+            std::string fam = val;
+            if (fam.size() >= 2 && (fam[0] == '"' || fam[0] == '\'') && fam.back() == fam[0]) fam = fam.substr(1, fam.size() - 2);
+            e.mono = fam.empty() ? 0 : font_face_by_name(fam.c_str());
+        }
         else if (key == "text-align") { e.talign = tk.empty() ? 0 : (tk[0] == "center" ? 1 : (tk[0] == "right" ? 2 : 0)); }
     }
     request_redraw();

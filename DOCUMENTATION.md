@@ -244,10 +244,17 @@ el_font_face(elem, "MyFont");                        // element font by name
 el_style(elem, "font-family:MyFont");                // or via a style
 ```
 
-The names `"default"` (Segoe UI) and `"mono"` (Consolas) are built in. The 30-font showcase
-is `examples/fonts.cpp` (the `fonts\` folder, path via `ELFONTS` or next to the exe). The
-fonts in `fonts\` are Windows system fonts; to distribute your program use fonts you have
-the rights to (the embedding mechanism works with any `.ttf`).
+The names `"default"` (Segoe UI) and `"mono"` (Consolas) are built in; in a style the name may
+have several words: `font-family:Elm Serif Bold`. Each embedded font gets its own private
+collection, so a name always maps to exactly the file it was loaded from.
+
+**30 original fonts** ship in `fonts\` — drawn by the library's generator `tools/fontgen`
+(stroke axes in real metrics → a broad-nib pen with contrast, flat/round ends, serifs → TrueType;
+`python tools/fontgen/build.py`). Families: Elm Grotesk (Light, Bold, Black, Italic, Condensed,
+Extended), Compressed, Geometric (Light, Bold), Humanist (Bold, Italic), Rounded (Bold), Techno
+(Bold), Mono (Bold), Typewriter, Slab (Bold), Serif (Bold, Italic), Didone, Oldstyle, Hairline,
+Wide Light. Showcases: `examples/fontshow.cpp` (non-standard window), `examples/fonts.cpp`.
+The examples share the font list in `examples/elm_fonts.h`.
 
 ## 17. Hotkeys and data
 

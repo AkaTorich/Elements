@@ -26,7 +26,8 @@ Elements/
     el_win32.cpp           window, message loop, input, frame buffer, NON-STANDARD windows
     el_effects.cpp         window effects (post-processing the finished frame)
   examples/              — examples (see below)
-  fonts/                 — 30 .ttf fonts for the font showcase
+  fonts/                 — 30 original fonts (.ttf) drawn by tools/fontgen
+  tools/fontgen/         — font generator: stroke axes -> pen -> TrueType (Python + fontTools)
   build.cmd              — build (Release, static CRT)
   build_all.ps1          — build every variant (static + DLL for x64 and x86)
   README.md, DOCUMENTATION.md
@@ -124,10 +125,15 @@ el_font_face(elem, "MyFont");                        // element font by name
 el_style(elem, "font-family:MyFont");                // or via a style
 ```
 
-The names `"default"` (Segoe UI) and `"mono"` (Consolas) are built in. The 30-font
-showcase is `examples/fonts.cpp` (the `fonts\` folder, path via `ELFONTS` or next to the
-exe). The fonts in `fonts\` are Windows system fonts used for the demo; to distribute your
-program, use fonts you have the rights to — the embedding mechanism works with any `.ttf`.
+The names `"default"` (Segoe UI) and `"mono"` (Consolas) are built in; a style also accepts
+multi-word names: `font-family:Elm Serif Bold`.
+
+The library comes with **30 original fonts** in `fonts\`, drawn by its own generator
+`tools/fontgen` (`python tools/fontgen/build.py`): grotesques (light → black, italic, condensed,
+extended, compressed), geometric, humanist, rounded, techno, mono, typewriter, slab, serif
+(with italic), didone, oldstyle, hairline, wide. Latin + Cyrillic, upper and lower case, digits,
+punctuation. See `fonts/README.md`. Showcases: `examples/fontshow.cpp` (a non-standard window)
+and `examples/fonts.cpp` (a plain list).
 
 ## Examples (`bin\`)
 
@@ -142,7 +148,8 @@ program, use fonts you have the rights to — the embedding mechanism works with
 | `curves` | a "blob" window with smooth curved edges and round buttons, a sine curve and an arc |
 | `cyberpunk` | an angular panel in the spirit of Cyberpunk 2077: dispersion, scanline and glow effects; yellow/cyan/magenta neon |
 | `effects` | a window-effects showcase: 10 effects on toggles |
-| `fonts` | 30 embeddable fonts (from `fonts\`, via `el_font_add`) |
+| `fontshow` | **the 30 original fonts in a non-standard window**: own shape, gradient, own title bar, glass cards |
+| `fonts` | the same 30 fonts in a plain window |
 
 ## What is implemented and what isn't
 

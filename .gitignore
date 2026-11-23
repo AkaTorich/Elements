@@ -9,3 +9,7 @@ dist/
 *.ilk
 *.idb
 *.exe
+
+# листы-образцы шрифтов и кэш Python (пересоздаются tools/fontgen/build.py)
+tools/fontgen/proof/
+__pycache__/
