@@ -11,9 +11,9 @@
 #define MAG 0xff2e6e
 #define BG  0x0a0a14
 
-bool inHack, inScan, inExit;
-char line1[48] = "ICE: взломан";
-char line2[48] = "ОЗУ: 64%   СЕТЬ: 7 узлов";
+int inHack, inScan, inExit;
+char line1[48] = "ICE: breached";
+char line2[48] = "RAM: 64%   NET: 7 nodes";
 
 // дисперсию теперь даёт встроенный эффект окна el_effect("chromatic") — рисуем просто
 static void disp_text(int x, int y, const char *s, int rgb, int size, int bold)
@@ -36,7 +36,7 @@ void bg_draw(el e, int w, int h, void *arg)
 
     // верхняя жёлтая полоса-заголовок
     el_g_fill(30, 0, w - 30, 38, YEL);
-    el_g_text(44, 8, "КИБЕРДЕКА // 2077", 0x0a0a14, 16, 1);
+    el_g_text(44, 8, "CYBERDECK // 2077", 0x0a0a14, 16, 1);
     el_g_fill(w - 150, 10, 120, 18, 0x0a0a14);
     el_g_text(w - 142, 10, "NETRUNNER", YEL, 13, 1);
 
@@ -51,7 +51,7 @@ void bg_draw(el e, int w, int h, void *arg)
     el_g_line(30, 100, w - 30, 100, MAG, 1);
 
     // дисперсные надписи
-    disp_text(44, 120, "// ДОСТУП РАЗРЕШЁН", YEL, 22, 1);
+    disp_text(44, 120, "// ACCESS GRANTED", YEL, 22, 1);
     disp_text(44, 160, line1, CYA, 16, 1);
     disp_text(44, 184, line2, 0xffffff, 15, 0);
 
@@ -63,30 +63,31 @@ void bg_draw(el e, int w, int h, void *arg)
         int b = (int)(255 * fabs(sin(t * 3.1 + 4.0)));
         el_g_fill(44 + i * ((w - 90) / 60), 212, (w - 90) / 60 + 1, 10, (r << 16) | (g << 8) | b);
     }
-    el_g_text(44, 228, "ДИСПЕРСИЯ СИГНАЛА", MAG, 12, 1);
+    el_g_text(44, 228, "SIGNAL DISPERSION", MAG, 12, 1);
 }
 
-static void cyber_button(el e, int side_w, int side_h, int neon, const char *label, bool &inside)
+static void cyber_button(el e, int side_w, int side_h, int neon, const char *label, int *inside)
 {
     int mx, my, b; int over = el_mouse(e, &mx, &my, &b);
-    inside = over && mx >= 0 && my >= 0 && mx < side_w && my < side_h;
+    *inside = over && mx >= 0 && my >= 0 && mx < side_w && my < side_h;
     int bv[12]; bevel(0, 0, side_w, side_h, 9, bv);
-    el_g_poly(bv, 6, inside ? 0x1a1a2e : 0x101020);
-    if (inside) { int s1[12]; bevel(-2, 0, side_w, side_h, 9, s1); el_g_poly_frame(s1, 6, MAG, 1);
-                  int s2[12]; bevel(2, 0, side_w, side_h, 9, s2); el_g_poly_frame(s2, 6, CYA, 1); }
+    el_g_poly(bv, 6, *inside ? 0x1a1a2e : 0x101020);
+    if (*inside) { int s1[12]; bevel(-2, 0, side_w, side_h, 9, s1); el_g_poly_frame(s1, 6, MAG, 1);
+                   int s2[12]; bevel(2, 0, side_w, side_h, 9, s2); el_g_poly_frame(s2, 6, CYA, 1); }
     el_g_poly_frame(bv, 6, neon, 2);
     int tw = el_g_text_w(label, 14, 1);
-    if (inside) disp_text(side_w / 2 - tw / 2, side_h / 2 - 10, label, neon, 14, 1);
+    if (*inside) disp_text(side_w / 2 - tw / 2, side_h / 2 - 10, label, neon, 14, 1);
     else el_g_text(side_w / 2 - tw / 2, side_h / 2 - 10, label, neon, 14, 1);
 }
 
-void p_hack(el e, int w, int h, void *a) { cyber_button(e, w, h, CYA, "ВЗЛОМ", inHack); }
-void p_scan(el e, int w, int h, void *a) { cyber_button(e, w, h, YEL, "СКАН", inScan); }
-void p_exit(el e, int w, int h, void *a) { cyber_button(e, w, h, MAG, "ВЫХОД", inExit); }
+void p_hack(el e, int w, int h, void *a) { cyber_button(e, w, h, CYA, "HACK", &inHack); }
+void p_scan(el e, int w, int h, void *a) { cyber_button(e, w, h, YEL, "SCAN", &inScan); }
+void p_exit(el e, int w, int h, void *a) { cyber_button(e, w, h, MAG, "EXIT", &inExit); }
 
-void on_hack(el e, void *a) { if (inHack) { strcpy(line1, "ICE: пробой ядра"); strcpy(line2, "ДОСТУП: root   ТРЕЙС: 0%"); } }
-void on_scan(el e, void *a) { if (inScan) { strcpy(line1, "СКАН: 3 демона"); strcpy(line2, "ОЗУ: 51%   СЕТЬ: 12 узлов"); } }
+void on_hack(el e, void *a) { if (inHack) { strcpy(line1, "ICE: core breach"); strcpy(line2, "ACCESS: root   TRACE: 0%"); } }
+void on_scan(el e, void *a) { if (inScan) { strcpy(line1, "SCAN: 3 daemons"); strcpy(line2, "RAM: 51%   NET: 12 nodes"); } }
 void on_exit(el e, void *a) { if (inExit) el_quit(); }
+void on_esc(el e, void *a) { el_quit(); }
 
 int main(void)
 {
@@ -112,7 +113,7 @@ int main(void)
     el bs = el_paint(bar, p_scan, 0); el_size(bs, 130, 52); el_on_click(bs, on_scan, 0);
     el be = el_paint(bar, p_exit, 0); el_size(be, 130, 52); el_on_click(be, on_exit, 0);
 
-    el_hotkey("Esc", on_exit, 0);
+    el_hotkey("Esc", on_esc, 0);
     el_run();
     return 0;
 }

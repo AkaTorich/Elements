@@ -1,8 +1,8 @@
 # Elements — documentation
 
-A window library for Windows in C++, in the spirit of WPF. Rendering is GDI+, with no
-third-party dependencies. A single header `elements.h` (C-compatible); the implementation
-lives in `src/`.
+A window library for Windows in plain C (C17), in the spirit of WPF. Rendering is GDI+,
+with no third-party dependencies. A single header `elements.h`, usable from C and C++; the
+implementation lives in `src/`.
 
 Contents:
 1. [How it works](#1-how-it-works)
@@ -37,11 +37,11 @@ nothing is happening the window sleeps — no CPU load.
 
 A minimal program:
 
-```cpp
+```c
 #include <elements.h>
 char name[64];
 void hi(el e, void *a) { el_set_text(el_find("out"), name); }
-int main() {
+int main(void) {
     el w = el_window("Example", 420, 220);
     el s = el_stack(w, 0); el_padding(s, 16, 16, 16, 16);
     el_edit(s, name, sizeof name);
@@ -53,7 +53,8 @@ int main() {
 
 ## 2. Building and linking
 
-You need Visual Studio with C++ (x64/x86). From PowerShell:
+You need Visual Studio with the C/C++ tools (MSVC, x64/x86). The library is C17 and builds
+without warnings at `/W3`. From PowerShell:
 
 ```powershell
 & ".\build.cmd"        # x64: static lib + all examples in bin\
@@ -67,6 +68,11 @@ application: `/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup`, sources with `/utf-8`.
 Library variants (`dist\<arch>\`): `static\Elements.lib` — static; `dll\Elements.dll` +
 `dll\Elements.lib` — dynamic (DLL and import lib). For the DLL, copy `Elements.dll` next to
 your program.
+
+Your program can be C or C++. The static library exports only the `el_*` API; its internal
+functions and data carry the `eli_` prefix (see `src/el_internal.h`), so they never clash
+with names in your program. GDI+ is called through its flat API, declared for C in
+`src/el_gdip.h`.
 
 ## 3. Window and loop
 
@@ -96,6 +102,10 @@ Panels lay out their own children. `parent = 0` is the window.
 | `el_tabs(parent)` / `el_tab(tabs, header)` | tabs |
 
 The window itself is a DockPanel. A grid cell — `el_cell(e, row, col, rowspan, colspan)`.
+Cells in columns of known width (pixel columns, and star columns once the grid's width is
+known) are measured with that width, so wrapped text and wrap panels inside a grid break into
+lines and the auto rows grow to fit. `el_border` holds one child — put a stack inside it for
+several.
 
 ## 5. Controls
 
@@ -196,8 +206,8 @@ A window can be any shape, size and proportion, and draw itself.
 rebuilds live. Frameless and shaped windows too (`el_window_resizable`, on by default); for
 shaped windows the shape is recomputed from the new size.
 
-Triangular window with triangular buttons — `examples/triangle.cpp`; a shaped (curved) one
-— `examples/curves.cpp`; an angular panel in the Cyberpunk spirit — `examples/cyberpunk.cpp`.
+Triangular window with triangular buttons — `examples/triangle.c`; a shaped (curved) one
+— `examples/curves.c`; an angular panel in the Cyberpunk spirit — `examples/cyberpunk.c`.
 
 ## 14. Custom drawing
 
@@ -215,7 +225,7 @@ stroked curve), `el_g_blob(xy,n,rgb)` (filled smooth closed curve — any "curve
 
 Post-processing of the finished frame. Several can be on at once; `amount` is the strength, 0 removes it.
 
-```cpp
+```c
 el_effect("chromatic", 3);   // dispersion (channel split)
 el_effect("scanlines", 30);  // CRT scanlines
 el_effect("bloom", 55);      // glow on bright areas
@@ -231,13 +241,13 @@ el_effects_clear();          // remove all
 
 An effect applies to the **whole** window, including text. For windows with small text keep
 dispersion low (1–3) or use effects only on decorative/shaped windows. Showcase —
-`examples/effects.cpp`.
+`examples/effects.c`.
 
 ## 16. Embeddable fonts
 
 Any `.ttf`/`.otf` can be loaded and named, then applied to elements or in a style.
 
-```cpp
+```c
 el_font_add("MyFont", "fonts/arial.ttf");          // from a file
 el_font_add_memory("MyFont", bytes, size);         // from memory (embed into the exe as a byte array)
 el_font_face(elem, "MyFont");                        // element font by name
@@ -253,7 +263,7 @@ collection, so a name always maps to exactly the file it was loaded from.
 `python tools/fontgen/build.py`). Families: Elm Grotesk (Light, Bold, Black, Italic, Condensed,
 Extended), Compressed, Geometric (Light, Bold), Humanist (Bold, Italic), Rounded (Bold), Techno
 (Bold), Mono (Bold), Typewriter, Slab (Bold), Serif (Bold, Italic), Didone, Oldstyle, Hairline,
-Wide Light. Showcases: `examples/fontshow.cpp` (non-standard window), `examples/fonts.cpp`.
+Wide Light. Showcases: `examples/fontshow.c` (non-standard window), `examples/fonts.c`.
 The examples share the font list in `examples/elm_fonts.h`.
 
 ## 17. Hotkeys and data

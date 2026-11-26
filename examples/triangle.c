@@ -6,17 +6,17 @@
 #include <stdio.h>
 
 int val = 50;
-bool inMinus, inPlus, inClose;
-char info[64] = "Значение: 50";
+int inMinus, inPlus, inClose;
+char info[64] = "Value: 50";
 
 // знак ориентации и проверка «точка в треугольнике»
 static long cr(int ax, int ay, int bx, int by, int cx, int cy) { return (long)(ax - cx) * (by - cy) - (long)(bx - cx) * (ay - cy); }
-static bool in_tri(int px, int py, const int *t) {
+static int in_tri(int px, int py, const int *t) {
     long d1 = cr(px, py, t[0], t[1], t[2], t[3]);
     long d2 = cr(px, py, t[2], t[3], t[4], t[5]);
     long d3 = cr(px, py, t[4], t[5], t[0], t[1]);
-    bool neg = (d1 < 0) || (d2 < 0) || (d3 < 0);
-    bool pos = (d1 > 0) || (d2 > 0) || (d3 > 0);
+    int neg = (d1 < 0) || (d2 < 0) || (d3 < 0);
+    int pos = (d1 > 0) || (d2 > 0) || (d3 > 0);
     return !(neg && pos);
 }
 
@@ -28,35 +28,35 @@ void bg_draw(el e, int w, int h, void *arg)
     int topt[6] = { w / 2, 8, w / 2 - 78, 150, w / 2 + 78, 150 };
     el_g_poly(topt, 3, 0x27387f);
     el_g_poly_frame(tri, 3, 0x5a7ee0, 2);
-    el_g_text(w / 2 - el_g_text_w("Треугольное окно", 17, 1) / 2, 64, "Треугольное окно", 0xeaf0ff, 17, 1);
+    el_g_text(w / 2 - el_g_text_w("Triangle window", 17, 1) / 2, 64, "Triangle window", 0xeaf0ff, 17, 1);
     el_g_text(w / 2 - el_g_text_w(info, 16, 1) / 2, h - 150, info, 0xbfe0ff, 16, 1);
 }
 
-void tri_button(el e, const int *t, bool &inside, int base, int hot, const char *label)
+void tri_button(el e, const int *t, int *inside, int base, int hot, const char *label)
 {
-    int mx, my, b, w = 0, h = 0;
+    int mx, my, b;
     int over = el_mouse(e, &mx, &my, &b);
-    inside = over && in_tri(mx, my, t);
-    el_g_poly(t, 3, inside ? hot : base);
+    *inside = over && in_tri(mx, my, t);
+    el_g_poly(t, 3, *inside ? hot : base);
     el_g_poly_frame(t, 3, 0xdfe8ff, 2);
-    (void)w; (void)h;
     if (label && *label) {
         int cx = (t[0] + t[2] + t[4]) / 3, cy = (t[1] + t[3] + t[5]) / 3;
         el_g_text(cx - el_g_text_w(label, 18, 1) / 2, cy - 13, label, 0xffffff, 18, 1);
     }
 }
 
-void p_minus(el e, int w, int h, void *a) { int t[6] = { w - 8, 8, w - 8, h - 8, 8, h / 2 }; tri_button(e, t, inMinus, 0x37509c, 0x4f73d6, "−"); }
-void p_plus(el e, int w, int h, void *a)  { int t[6] = { 8, 8, 8, h - 8, w - 8, h / 2 };     tri_button(e, t, inPlus,  0x37509c, 0x4f73d6, "+"); }
-void p_close(el e, int w, int h, void *a) { int t[6] = { w / 2, 8, w - 8, h - 8, 8, h - 8 }; tri_button(e, t, inClose, 0xb23a4a, 0xff5d6c, "✕"); }
+void p_minus(el e, int w, int h, void *a) { int t[6] = { w - 8, 8, w - 8, h - 8, 8, h / 2 }; tri_button(e, t, &inMinus, 0x37509c, 0x4f73d6, "\xe2\x88\x92"); }
+void p_plus(el e, int w, int h, void *a)  { int t[6] = { 8, 8, 8, h - 8, w - 8, h / 2 };     tri_button(e, t, &inPlus,  0x37509c, 0x4f73d6, "+"); }
+void p_close(el e, int w, int h, void *a) { int t[6] = { w / 2, 8, w - 8, h - 8, 8, h - 8 }; tri_button(e, t, &inClose, 0xb23a4a, 0xff5d6c, "\xe2\x9c\x95"); }
 
-void on_minus(el e, void *a) { if (inMinus) { val -= 5; if (val < 0) val = 0; sprintf(info, "Значение: %d", val); } }
-void on_plus(el e, void *a)  { if (inPlus)  { val += 5; if (val > 100) val = 100; sprintf(info, "Значение: %d", val); } }
+void on_minus(el e, void *a) { if (inMinus) { val -= 5; if (val < 0) val = 0; sprintf(info, "Value: %d", val); } }
+void on_plus(el e, void *a)  { if (inPlus)  { val += 5; if (val > 100) val = 100; sprintf(info, "Value: %d", val); } }
 void on_close(el e, void *a) { if (inClose) el_quit(); }
+void on_esc(el e, void *a) { el_quit(); }
 
 int main(void)
 {
-    el w = el_window("Треугольник", 480, 430);
+    el w = el_window("Triangle", 480, 430);
     el_window_shape("pixels");           // форма окна — по непрозрачности рисунка (треугольник)
     el_window_canvas(bg_draw, 0);
 
@@ -72,7 +72,7 @@ int main(void)
     el bc = el_paint(bottom, p_close, 0); el_size(bc, 74, 74); el_on_click(bc, on_close, 0);
     el bp = el_paint(bottom, p_plus, 0);  el_size(bp, 96, 74); el_on_click(bp, on_plus, 0);
 
-    el_hotkey("Esc", on_close, 0);
+    el_hotkey("Esc", on_esc, 0);
     el_run();
     return 0;
 }

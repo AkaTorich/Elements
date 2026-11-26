@@ -1,11 +1,13 @@
-# Elements — a window library for Windows (C++)
+# Elements — a window library for Windows (C)
 
 A native UI library in the spirit of WPF, a port of the "design library" prototype
 from DynastyOS (`<elements.h>`) to real Windows. Rendering is done with **GDI+**
 (no third-party dependencies). A program builds a tree of elements once and runs
 `el_run()`; panels lay out their own children (measure/arrange, as in WPF).
 
-The API is the same as in DyOS: any code written against `elements.h` compiles there and here.
+The library is written in **plain C (C17)** and is used the same way from C and C++
+(`elements.h` has `extern "C"`). The API is the same as in DyOS: any code written
+against `elements.h` compiles there and here.
 
 ## Layout of the project
 
@@ -13,19 +15,22 @@ The API is the same as in DyOS: any code written against `elements.h` compiles t
 Elements/
   include/elements.h     — the single header a program includes (C-compatible API)
   src/                   — implementation, split by layer:
-    el_internal.h          shared internal header: element struct, context, helpers
-    el_core.cpp            context, element creation, properties, fonts/text, el_run/el_frame loop
-    el_theme.cpp           themes: dark/light, 16 named, 14 color slots
-    el_layout.cpp          layout: stack/dock/wrap/grid/scroll/canvas/border/group/tabs, align, "Auto,*,2*,120" grid
-    el_controls.cpp        input: hit-testing, hover, clicks, text editor, combo, tooltips
-    el_paint.cpp           drawing of every element on GDI+; the el_g_* custom-drawing primitives
-    el_menu.cpp            menu bar, drop-downs and submenus, context menu
-    el_style.cpp           inline styling (CSS-like) el_style and the el_stylesheet table
-    el_anim.cpp            animations (translate/scale/rotate/opacity), easings, timers
-    el_dialog.cpp          message, ask, toast, file/folder pickers, modal dialog
-    el_win32.cpp           window, message loop, input, frame buffer, NON-STANDARD windows
-    el_effects.cpp         window effects (post-processing the finished frame)
-  examples/              — examples (see below)
+    el_internal.h          shared internal header: element struct, context, helpers; internal names get the eli_ prefix
+    el_gdip.h              GDI+ flat API declarations for C (the SDK's gdiplus.h is C++ only)
+    el_util.c              growable arrays, UTF-8 <-> UTF-16 strings
+    el_gfx.c               GDI+ drawing helpers (brush/pen/path in one call)
+    el_core.c              context, element creation, properties, fonts/text, el_run/el_frame loop
+    el_theme.c             themes: dark/light, 16 named, 14 color slots
+    el_layout.c            layout: stack/dock/wrap/grid/scroll/canvas/border/group/tabs, align, "Auto,*,2*,120" grid
+    el_controls.c          input: hit-testing, hover, clicks, text editor, combo, tooltips
+    el_paint.c             drawing of every element on GDI+; the el_g_* custom-drawing primitives
+    el_menu.c              menu bar, drop-downs and submenus, context menu
+    el_style.c             inline styling (CSS-like) el_style and the el_stylesheet table
+    el_anim.c              animations (translate/scale/rotate/opacity), easings, timers
+    el_dialog.c            message, ask, toast, file/folder pickers, modal dialog
+    el_win32.c             window, message loop, input, frame buffer, NON-STANDARD windows
+    el_effects.c           window effects (post-processing the finished frame)
+  examples/              — examples in C (see below); elm_fonts.h loads the 30 fonts
   fonts/                 — 30 original fonts (.ttf) drawn by tools/fontgen
   tools/fontgen/         — font generator: stroke axes -> pen -> TrueType (Python + fontTools)
   build.cmd              — build (Release, static CRT)
@@ -35,7 +40,7 @@ Elements/
 
 ## Building
 
-You need Visual Studio with the C++ tools. From PowerShell in the project folder:
+You need Visual Studio with the C/C++ tools (MSVC, C17). From PowerShell in the project folder:
 
 ```powershell
 & ".\build.cmd"        # x64: static lib + all examples in bin\
@@ -53,7 +58,8 @@ To use it in your program: add `include\` to the header search path, link the ri
 `Elements.lib` + `gdiplus.lib user32.lib gdi32.lib comdlg32.lib shell32.lib ole32.lib`,
 build as a windowed application (`/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup`). Compile
 sources with `/utf-8` — strings in the program are UTF-8. For the DLL, put `Elements.dll`
-next to your program.
+next to your program. The program itself can be C or C++; the static library exports
+only `el_*` names (internal ones are `eli_*`), so it does not clash with your own names.
 
 ## A quick tour of the API
 
@@ -97,7 +103,7 @@ Arbitrary shapes, curves included, are drawn with `el_g_poly/poly_frame` (polygo
 
 Post-processing of the finished frame; several can be on at once, `amount` is the strength, 0 removes it.
 
-```cpp
+```c
 el_effect("chromatic", 3);   // dispersion (channel split)
 el_effect("scanlines", 30);  // CRT scanlines
 el_effect("bloom", 55);      // glow on bright areas
@@ -118,7 +124,7 @@ windows with small text, or use effects only on decorative/shaped windows.
 
 Any `.ttf`/`.otf` can be loaded and named, then applied to elements or in a style.
 
-```cpp
+```c
 el_font_add("MyFont", "fonts/arial.ttf");          // from a file
 el_font_add_memory("MyFont", bytes, size);         // from memory (embed into the exe as a byte array)
 el_font_face(elem, "MyFont");                        // element font by name
@@ -132,8 +138,8 @@ The library comes with **30 original fonts** in `fonts\`, drawn by its own gener
 `tools/fontgen` (`python tools/fontgen/build.py`): grotesques (light → black, italic, condensed,
 extended, compressed), geometric, humanist, rounded, techno, mono, typewriter, slab, serif
 (with italic), didone, oldstyle, hairline, wide. Latin + Cyrillic, upper and lower case, digits,
-punctuation. See `fonts/README.md`. Showcases: `examples/fontshow.cpp` (a non-standard window)
-and `examples/fonts.cpp` (a plain list).
+punctuation. See `fonts/README.md`. Showcases: `examples/fontshow.c` (a non-standard window)
+and `examples/fonts.c` (a plain list).
 
 ## Examples (`bin\`)
 
@@ -156,7 +162,9 @@ and `examples/fonts.cpp` (a plain list).
 Done: everything above — layout, controls, themes, inline and table styling, menus,
 animations, dialogs, custom drawing, non-standard windows and shapes, window effects,
 embeddable fonts, resizing with live re-layout, HiDPI, idle sleep (the window sleeps when
-nothing happens). Full reference — `DOCUMENTATION.md`.
+nothing happens). Grid cells in columns of known width (pixel or star) are measured with
+that width, so wrapped text and wrap panels inside a grid break into lines. Full
+reference — `DOCUMENTATION.md`.
 
 Simplified / not yet implemented (declarations exist in `elements.h` unless noted):
 loading a window from XML markup, `TreeView`/`DataGrid`, a code editor with highlighting,

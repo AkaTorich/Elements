@@ -4,10 +4,11 @@ $ErrorActionPreference = 'Stop'
 $proj = $PSScriptRoot
 
 # найти vcvarsall.bat
+$env:PATH = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer;$env:PATH"
 $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
 $vcall = $null
 if (Test-Path $vswhere) {
-    $vsroot = & $vswhere -latest -products * -property installationPath
+    $vsroot = & $vswhere -latest -prerelease -products * -property installationPath
     if ($vsroot) { $c = Join-Path $vsroot 'VC\Auxiliary\Build\vcvarsall.bat'; if (Test-Path $c) { $vcall = $c } }
 }
 if (-not $vcall) { $vcall = 'C:\Program Files\Microsoft Visual Studio\18\Insiders\VC\Auxiliary\Build\vcvarsall.bat' }
@@ -23,9 +24,10 @@ Write-Host "exports: $($names.Count)"
 function Build-Arch([string]$arch) {
     $obj = "$proj\build\$arch"; $out = "$proj\dist\$arch"
     New-Item -ItemType Directory -Force "$obj", "$out\static", "$out\dll" | Out-Null
-    $src = (Get-ChildItem "$proj\src\*.cpp" | ForEach-Object { '"' + $_.FullName + '"' }) -join ' '
+    Get-ChildItem "$obj\*.obj" -ErrorAction SilentlyContinue | Remove-Item -Force
+    $src = (Get-ChildItem "$proj\src\*.c" | ForEach-Object { '"' + $_.FullName + '"' }) -join ' '
     $objs = '"' + $obj + '\el_*.obj"'
-    $cflags = "/nologo /c /EHsc /std:c++17 /O2 /MT /utf-8 /DUNICODE /D_UNICODE /D_CRT_SECURE_NO_WARNINGS /I `"$proj\include`" /Fo:`"$obj\\`""
+    $cflags = "/nologo /c /std:c17 /O2 /MT /utf-8 /DUNICODE /D_UNICODE /D_CRT_SECURE_NO_WARNINGS /W3 /I `"$proj\include`" /Fo:`"$obj\\`""
     $syslibs = 'gdiplus.lib user32.lib gdi32.lib comdlg32.lib shell32.lib ole32.lib'
     $compile = "cl $cflags $src"
     $mklib = "lib /nologo /out:`"$out\static\Elements.lib`" $objs"

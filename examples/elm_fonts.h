@@ -3,9 +3,10 @@
 #pragma once
 #include <elements.h>
 #include <windows.h>
-#include <string>
+#include <stdlib.h>
+#include <wchar.h>
 
-struct ElmFont { const char *file; const char *name; };
+typedef struct ElmFont { const char *file; const char *name; } ElmFont;
 
 static const ElmFont ELM_FONTS[] = {
     { "ElmGrotesk.ttf", "Elm Grotesk" },             { "ElmGroteskLight.ttf", "Elm Grotesk Light" },
@@ -24,34 +25,32 @@ static const ElmFont ELM_FONTS[] = {
     { "ElmDidone.ttf", "Elm Didone" },               { "ElmOldstyle.ttf", "Elm Oldstyle" },
     { "ElmHairline.ttf", "Elm Hairline" },           { "ElmWideLight.ttf", "Elm Wide Light" },
 };
-static const int ELM_FONT_COUNT = (int)(sizeof(ELM_FONTS) / sizeof(ELM_FONTS[0]));
+#define ELM_FONT_COUNT ((int)(sizeof(ELM_FONTS) / sizeof(ELM_FONTS[0])))
 
-static std::wstring elm_fonts_dir()
+// папка шрифтов (UTF-16)
+static void elm_fonts_dir(wchar_t *out, int cap)
 {
     const wchar_t *e = _wgetenv(L"ELFONTS");
-    if (e && *e) return e;
-    wchar_t p[600]; GetModuleFileNameW(NULL, p, 600);
-    wchar_t *s = wcsrchr(p, L'\\'); if (s) *s = 0;
-    return std::wstring(p) + L"\\..\\fonts";
-}
-
-static std::string elm_utf8(const std::wstring &w)
-{
-    int n = WideCharToMultiByte(CP_UTF8, 0, w.c_str(), -1, NULL, 0, NULL, NULL);
-    std::string s(n > 0 ? n - 1 : 0, 0);
-    if (n > 0) WideCharToMultiByte(CP_UTF8, 0, w.c_str(), -1, &s[0], n, NULL, NULL);
-    return s;
+    wchar_t *s;
+    if (e && *e) { lstrcpynW(out, e, cap); return; }
+    GetModuleFileNameW(NULL, out, (DWORD)cap);
+    s = wcsrchr(out, L'\\');
+    if (s) *s = 0;
+    if (lstrlenW(out) + 10 < cap) lstrcatW(out, L"\\..\\fonts");
 }
 
 // загрузить все шрифты; ok[i] — загрузился ли i-й; вернёт сколько загрузилось
 static int elm_load_fonts(int *ok)
 {
-    std::wstring dir = elm_fonts_dir();
-    int n = 0;
-    for (int i = 0; i < ELM_FONT_COUNT; i++) {
-        std::wstring pw = dir + L"\\";
-        for (const char *c = ELM_FONTS[i].file; *c; c++) pw += (wchar_t)(unsigned char)*c;
-        ok[i] = el_font_add(ELM_FONTS[i].name, elm_utf8(pw).c_str());
+    wchar_t dir[700], pw[800];
+    char u[2400];
+    int n = 0, i;
+    elm_fonts_dir(dir, 700);
+    for (i = 0; i < ELM_FONT_COUNT; i++) {
+        _snwprintf(pw, 799, L"%s\\%S", dir, ELM_FONTS[i].file);
+        pw[799] = 0;
+        if (!WideCharToMultiByte(CP_UTF8, 0, pw, -1, u, (int)sizeof u, NULL, NULL)) u[0] = 0;
+        ok[i] = el_font_add(ELM_FONTS[i].name, u);
         n += ok[i] ? 1 : 0;
     }
     return n;
